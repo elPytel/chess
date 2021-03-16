@@ -206,7 +206,6 @@ class Chessbord:
 	
 	def CheckPiece(self, position, color):	# kontrola napadeni
 		#print(self.chessbord[position[0]][position[1]].name, "position:", position)
-		# king check
 		if self.CheckPieceByType(position, color, "pawn"):
 			return True
 		if self.CheckPieceByType(position, color, "rook"):
@@ -220,6 +219,14 @@ class Chessbord:
 		if self.CheckPieceByType(position, color, "king"):
 			return True
 		
+		return False
+		
+	""" 
+	Vrati True, pokud je dana figura v sachu.
+	"""
+	def IsPieceInCheck(self, position, color):	# kontrola napadeni
+		if self.CheckPiece(position, color) != None:
+			return True
 		return False
 		
 	def PrintBord(self):
@@ -302,7 +309,7 @@ class Game:
 		if color == "white":
 			coordinates = self.bord.FindPiece("white", "queen")
 			for position in coordinates:
-				if self.bord.CheckPiece(position, "white"):
+				if self.bord.IsPieceInCheck(position, "white"):
 					print(color, "garde!")
 					self.player_white.garde = True
 				else:
@@ -310,7 +317,7 @@ class Game:
 		elif color == "black":
 			coordinates = self.bord.FindPiece("black", "queen")
 			for position in coordinates:
-				if self.bord.CheckPiece(position, "black"):
+				if self.bord.IsPieceInCheck(position, "black"):
 					print(color, "garde!")
 					self.player_black.garde = True
 				else:
@@ -333,8 +340,10 @@ class Game:
 				self.player_black.check = True
 			else:
 				self.player_black.check = False
-		
-	def EvaluateMove(self, player_color, move_from, move_to):
+	"""
+	Testuje tah na fyzickou validitu, tedy zda se hrac pokousi hrat na sachovnici a v jejim rozsahu. 
+	"""		
+	def PhysicaliValidMove(self, player_color, move_from, move_to):
 		y_f = move_from[0]
 		x_f = move_from[1]
 		bord = self.bord.chessbord
@@ -369,11 +378,17 @@ class Game:
 				print("Invalid destination color!")
 			return False
 		
+		return True
 		
-		# physicali valid move
-		chessman = bord[y_f][x_f]
-		chessman.Print()
-		
+	"""
+	Testuje tah na logickou validitu, tedy zda jej lze podle pravidel zahrat?
+	"""
+	def GameLogicalValidMove(self, player_color, move_from, move_to, chessman):
+		y_f = move_from[0]
+		x_f = move_from[1]
+		bord = self.bord.chessbord
+		y_t = move_to[0]
+		x_t = move_to[1]
 		valid = False
 		if bord[y_f][x_f].name == "pawn":
 			moves = []
@@ -406,13 +421,31 @@ class Game:
 				if y_f+increment[0] == y_t and x_f+increment[1] == x_t:
 					valid = True
 					break
+		return valid
 		
-		# game_logicaly valid move
-		if valid == False:
+	"""
+	Funkce, ktera vahodniti tah. Pokud je validni, tak jej zahraje a aktualizuje sachovnici.
+	"""
+	def EvaluateMove(self, player_color, move_from, move_to):
+		y_f = move_from[0]
+		x_f = move_from[1]
+		bord = self.bord.chessbord
+		y_t = move_to[0]
+		x_t = move_to[1]
+		
+		# physicali valid move
+		if self.PhysicaliValidMove(player_color, move_from, move_to) != True:
+			return False
+		else:
+			chessman = bord[y_f][x_f]
+			chessman.Print()
+		
+		# game-logicaly valid move
+		if self.GameLogicalValidMove(player_color, move_from, move_to, chessman) != True:
 			if DEBUG:
 				print("Can't get there!")
 			return False
-		elif valid == True:
+		else:
 			bord[y_f][x_f] = None
 		
 		# zvlastni tahy:
@@ -430,7 +463,12 @@ class Game:
 		
 		# jde na prazdne pole
 		if bord[y_t][x_t] == None:
-			bord[y_t][x_t] = chessman
+			if chessman.name == "pawn" and player_color == "white" and y_t == 0:
+				bord[y_t][x_t] = Chessman("queen", "white")
+			elif chessman.name == "pawn" and player_color == "black" and y_t == 7:
+				bord[y_t][x_t] = Chessman("queen", "black")
+			else:
+				bord[y_t][x_t] = chessman
 			return True
 		# jde na obsazene pole
 		elif bord[y_t][x_t].color != player_color:
@@ -465,7 +503,6 @@ class Game:
 			self.EvaluateGarde("white")
 		
 		#test na vlastni sach & garde
-		old_check = False
 		self.EvaluateCheck(player_color)
 		self.EvaluateGarde(player_color)
 		if player_color == "white":

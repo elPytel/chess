@@ -65,7 +65,8 @@ class Player:
 			position = self.new_bord.FindPiece(self.color, "king")
 			if DEBUG and 0:
 				print("Position of King:", position[0])
-			check = self.new_bord.CheckPiece(position[0], self.color)
+			#check = self.new_bord.CheckPiece(position[0], self.color)
+			check = self.new_bord.IsPieceInCheck(position[0], self.color)
 			
 			# vraceni figurek do puvodniho stavu
 			self.MoveFromTo(self.new_bord, self.moves[idx][1], self.moves[idx][0])

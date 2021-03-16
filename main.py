@@ -46,6 +46,8 @@ while game.Playing() == True:
 	move = game.player_white.Move(bord)
 	if move == None:
 		# nezahral
+		# TODO
+		self.player_white.check = True
 		break
 	else:
 		move_from = move[0]
@@ -63,6 +65,7 @@ while game.Playing() == True:
 	move = game.player_black.Move(bord)
 	if move == None:
 		# nezahral
+		self.player_black.check = True
 		break
 	else:
 		move_from = move[0]
