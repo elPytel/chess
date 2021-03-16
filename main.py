@@ -4,28 +4,36 @@ import time
 
 import Chess
 import AI
+import AI_random
 
 """
 Sachy
 
 # TODO
-tahy s pinclem
-tahy s kralem
+ - tahy s pinclem
+ |- brani mimochodem
+ - tahy s kralem
+ |- rosada
 
-brani mimochodem
-
-meneni pescu za nove figury (automaticky za damu)
+ - vyhodnoceni None tahu
+ |- je to pat
+ |- hrac se vzdava
 
 # DONE
  - Generator desky
  - validace tahu
- - sach
+ - ohrozeni
+ |- figury napadajici danou pozici
+ |- sach
+ |- garde
  - sach-mat
- - garde
- - kral nesmi tahnout do sachu
+ - tahy s kralem
+ |- kral nesmi tahnout do sachu
+ - tahy s pinclem
+ |- meneni pescu za nove figury (automaticky za damu)
 """
 
-turn_time = 0.8
+turn_time = 1
 
 # Main
 
@@ -35,7 +43,7 @@ game.NewGame()
 game.PrintBord()
 
 # set player
-game.SetPlayer(AI.Player("black"), "black")
+game.SetPlayer(AI_random.Player("black"), "black")
 game.SetPlayer(AI.Player("white"), "white")
 
 print()
@@ -47,7 +55,8 @@ while game.Playing() == True:
 	if move == None:
 		# nezahral
 		# TODO
-		self.player_white.check = True
+		if game.IsPat("white") != True:
+			game.player_white.check = True
 		break
 	else:
 		move_from = move[0]
@@ -65,7 +74,9 @@ while game.Playing() == True:
 	move = game.player_black.Move(bord)
 	if move == None:
 		# nezahral
-		self.player_black.check = True
+		if game.IsPat("black") != True:
+			game.player_black.check = True
+			print("Black - check set true")
 		break
 	else:
 		move_from = move[0]
@@ -76,9 +87,12 @@ while game.Playing() == True:
 			break
 	game.PrintBord()
 	time.sleep(turn_time/2)
-	
-#if game.Won("white"):
-print("Game won", ("black", "white")[game.Won("white")], "player!")
+
+# Konec hry
+if game.pat == True:
+	print("Pat!")
+else:
+	print("Game won", ("black", "white")[game.Won("white")], "player!")
 
 """
 print("\u0420\u043e\u0441\u0441\u0438\u044f")

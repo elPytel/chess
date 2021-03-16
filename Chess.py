@@ -52,6 +52,7 @@ class Chessman:
 		
 	def SetKing(self):		# kral
 		self.name = "king"
+		self.cost = 8
 		self.character = ['\u2654','\u265A']
 		self.incremental = [[1,1],[-1,1],[-1,-1],[1,-1],[1,0],[-1,0],[0,1],[0,-1]]
 		
@@ -153,7 +154,7 @@ class Chessbord:
 						position.append([y,x])
 		return position
 		
-	def CheckPieceByType(self, position, color, enemy_type):
+	def CheckPieceByType(self, position, color, enemy_type, check):
 		y = position[0]
 		x = position[1]
 		incremnets = []
@@ -180,12 +181,13 @@ class Chessbord:
 				if box != None:
 					if box.color == color:
 						break
-					elif box.color != color and box.name != enemy_type:
+					elif box.name != enemy_type:
 						break
 					elif box.name == enemy_type:
 						if DEBUG:
 							print("Position of enemy", enemy_type, ":", [y_v,x_v])
-						return True
+						check.append([y_v,x_v])
+						break
 				# aktualizace
 				y_v = y_v+vector[0]
 				x_v = x_v+vector[1]
@@ -200,32 +202,31 @@ class Chessbord:
 			if box != None and box.color != color and box.name == enemy_type:
 				if DEBUG:
 					print("Position of enemy", enemy_type, ":", [y_i,x_i])
-				return True
+				check.append([y_i,x_i])
 		
-		return False
+		return check
 	
+	"""
+	Vrati seznam souradnic vsech figur ktere ji napadaji.
+	color == frendly color
+	"""
 	def CheckPiece(self, position, color):	# kontrola napadeni
 		#print(self.chessbord[position[0]][position[1]].name, "position:", position)
-		if self.CheckPieceByType(position, color, "pawn"):
-			return True
-		if self.CheckPieceByType(position, color, "rook"):
-			return True
-		if self.CheckPieceByType(position, color, "knight"):
-			return True
-		if self.CheckPieceByType(position, color, "bishop"):
-			return True
-		if self.CheckPieceByType(position, color, "queen"):
-			return True
-		if self.CheckPieceByType(position, color, "king"):
-			return True
+		check = []
+		check = self.CheckPieceByType(position, color, "pawn", check)
+		check = self.CheckPieceByType(position, color, "rook", check)
+		check = self.CheckPieceByType(position, color, "knight", check)
+		check = self.CheckPieceByType(position, color, "bishop", check)
+		check = self.CheckPieceByType(position, color, "queen", check)
+		check = self.CheckPieceByType(position, color, "king", check)
 		
-		return False
+		return check
 		
 	""" 
 	Vrati True, pokud je dana figura v sachu.
 	"""
 	def IsPieceInCheck(self, position, color):	# kontrola napadeni
-		if self.CheckPiece(position, color) != None:
+		if (len(self.CheckPiece(position, color)) != 0):
 			return True
 		return False
 		
@@ -263,6 +264,7 @@ class Game:
 		# hraci
 		self.player_white = None
 		self.player_black = None
+		self.pat = False
 		
 	def SetPlayer(self, player, color):
 		if color == "white":
@@ -332,6 +334,7 @@ class Game:
 				self.player_white.check = True
 			else:
 				self.player_white.check = False
+			return self.player_white.check
 			
 		if color == "black":
 			coordinates = self.bord.FindPiece("black", "king")
@@ -340,6 +343,7 @@ class Game:
 				self.player_black.check = True
 			else:
 				self.player_black.check = False
+			return self.player_black.check
 	"""
 	Testuje tah na fyzickou validitu, tedy zda se hrac pokousi hrat na sachovnici a v jejim rozsahu. 
 	"""		
@@ -503,10 +507,13 @@ class Game:
 			self.EvaluateGarde("white")
 		
 		#test na vlastni sach & garde
+		if player_color == "white":
+			old_check = self.player_white.check
+		elif player_color == "black":
+			old_check = self.player_black.check
 		self.EvaluateCheck(player_color)
 		self.EvaluateGarde(player_color)
 		if player_color == "white":
-			old_check = self.player_white.check
 			if old_check and self.player_white.check:
 				print("Hara-kiri2 - neuhnul")
 				return False
@@ -519,6 +526,11 @@ class Game:
 	
 	def Playing(self):
 		return (not(self.player_white.mate) and not(self.player_black.mate))
+		
+	def IsPat(self, color):
+		self.pat = not( self.EvaluateCheck(color) )
+		print("Pat set to:", self.pat)
+		return self.pat;
 		
 	def Won(self, color):
 		if color == "white":
