@@ -68,6 +68,50 @@ class Chessman:
 			self.SetQueen()
 		elif (name == "king"):
 			self.SetKing()
+			
+	def PawnMove(self, position, bord):
+		moves = []
+		y = position[0]
+		x = position[1]
+		# pohyb dopredu
+		for increment in self.incremental:
+			y_i = y+increment[0]
+			x_i = x+increment[1]
+			# je to validni pole?
+			if (y_i > 7 or y_i < 0 or x_i > 7 or x_i < 0):
+				continue
+			# je to pole volne?
+			if bord[y_i][x_i] == None:
+				if DEBUG and 0:
+					print("position y:", y_i,"x:", x_i," is free")
+				moves.append([y_i,x_i])
+			else:
+				break
+		
+		# utok	
+		for x_i in [-1,1]:
+			x_i = x+x_i
+			if self.color == "white":
+				y_i = y-1
+			if self.color == "black":
+				y_i = y+1
+			# je to validni pole?
+			if (y_i > 7 or y_i < 0 or x_i > 7 or x_i < 0):
+				continue
+			# je to pole obsazene?
+			if bord[y_i][x_i] != None and bord[y_i][x_i].color != self.color:
+				moves.append([y_i,x_i])
+			
+		return moves
+	
+	# TODO
+	def ChessmanMove(self, position, bord):
+		moves = []
+		if self.name == "pawn":
+			moves = self.PawnMove(position, bord)
+		#if self.name = "king":
+		
+		return moves
 	
 	def Print(self):
 		print(" ---Chessman--- ")
@@ -83,20 +127,11 @@ class Chessman:
 		else:
 			print("Move incremental:", self.incremental)
 		
-	
-
-class Game:
+class Chessbord:
 	def __init__(self):
-		self.bord = Game.MakeBord(self)
-		# hraci
-		self.player_white = None
-		self.player_black = None
-		
-	def SetPlayer(self, player, color):
-		if color == "white":
-			self.player_white = player
-		elif color == "black":
-			self.player_black = player
+		self.chessbord = self.MakeBord()
+		self.white_bead = []
+		self.black_bead = []
 		
 	def MakeBord(self):
 		bord = []
@@ -107,51 +142,17 @@ class Game:
 				row.append(None)
 			bord.append(row)
 		return bord
-		
-	def NewGame(self):
-		# zahodi zbyle figurky
-		for row in self.bord:
-			for col in row:
-				while col != None:
-					col.pop()
-		# vysazi zde nove figurky
-		
-		# cerny
-		self.bord[0][0] = Chessman("rook", "black")
-		self.bord[0][1] = Chessman("knight", "black")
-		self.bord[0][2] = Chessman("bishop", "black")
-		self.bord[0][3] = Chessman("queen", "black")
-		self.bord[0][4] = Chessman("king", "black")
-		self.bord[0][5] = Chessman("bishop", "black")
-		self.bord[0][6] = Chessman("knight", "black")
-		self.bord[0][7] = Chessman("rook", "black")
-		# rada pescu
-		for x in range(8):
-			self.bord[1][x] = Chessman("pawn", "black")
-			
-		# bili
-		# rada pescu
-		for x in range(8):
-			self.bord[6][x] = Chessman("pawn", "white")
-		self.bord[7][0] = Chessman("rook", "white")
-		self.bord[7][1] = Chessman("knight", "white")
-		self.bord[7][2] = Chessman("bishop", "white")
-		self.bord[7][3] = Chessman("queen", "white")
-		self.bord[7][4] = Chessman("king", "white")
-		self.bord[7][5] = Chessman("bishop", "white")
-		self.bord[7][6] = Chessman("knight", "white")
-		self.bord[7][7] = Chessman("rook", "white")
 	
 	def FindPiece(self, color, name):
 		position = []
-		for y in range(len(self.bord)):
-			for x in range(len(self.bord[y])):
-				if self.bord[y][x] != None:
-					chessman = self.bord[y][x]
+		for y in range(len(self.chessbord)):
+			for x in range(len(self.chessbord[y])):
+				if self.chessbord[y][x] != None:
+					chessman = self.chessbord[y][x]
 					if chessman.color == color and chessman.name == name:
 						position.append([y,x])
 		return position
-	
+		
 	def CheckPieceByType(self, position, color, enemy_type):
 		y = position[0]
 		x = position[1]
@@ -175,11 +176,11 @@ class Game:
 			y_v = y+vector[0]
 			x_v = x+vector[1]
 			while (y_v <= 7 and y_v >= 0 and x_v <= 7 and x_v >= 0):
-				box = self.bord[y_v][x_v]
+				box = self.chessbord[y_v][x_v]
 				if box != None:
 					if box.color == color:
 						break
-					elif box.name != enemy_type:
+					elif box.color != color and box.name != enemy_type:
 						break
 					elif box.name == enemy_type:
 						if DEBUG:
@@ -195,7 +196,7 @@ class Game:
 			x_i = x + increment[1];
 			if (y_i > 7 or y_i < 0 or x_i > 7 or x_i < 0):
 				continue
-			box = self.bord[y_i][x_i]
+			box = self.chessbord[y_i][x_i]
 			if box != None and box.color != color and box.name == enemy_type:
 				if DEBUG:
 					print("Position of enemy", enemy_type, ":", [y_i,x_i])
@@ -204,7 +205,7 @@ class Game:
 		return False
 	
 	def CheckPiece(self, position, color):	# kontrola napadeni
-		print("King position:", position)
+		#print(self.chessbord[position[0]][position[1]].name, "position:", position)
 		# king check
 		if self.CheckPieceByType(position, color, "pawn"):
 			return True
@@ -221,9 +222,122 @@ class Game:
 		
 		return False
 		
+	def PrintBord(self):
+		bord = self.chessbord
+		print(" ---Bord--- ")
+		print("  01234567 ")
+		for y in range(len(bord)):
+			# indexovani radku
+			row = 8-y
+			print(row, end='')
+			print("|", end='')
+			# jednotlive radky
+			for x in range(len(bord[y])):
+				if bord[y][x] != None:
+					if (bord[y][x].color == "white"):
+						print(bord[y][x].character[1], end='')
+					else:
+						print(bord[y][x].character[0], end='')
+				else:
+					print("_", end='')
+			print("|", end='')
+			print(y)
+		# pismenka
+		print("  ", end='')
+		for x in range(8):
+			char = 65 + x
+			print(chr(char), end='')
+		print()
+
+class Game:
+	def __init__(self):
+		# sachovnice
+		self.bord = Chessbord()
+		# hraci
+		self.player_white = None
+		self.player_black = None
+		
+	def SetPlayer(self, player, color):
+		if color == "white":
+			self.player_white = player
+		elif color == "black":
+			self.player_black = player
+		
+	def NewGame(self):
+		# zahodi zbyle figurky
+		bord = self.bord.chessbord
+		for row in bord:
+			for col in row:
+				while col != None:
+					col.pop()
+		# vysazi zde nove figurky
+		
+		# cerny
+		bord[0][0] = Chessman("rook", "black")
+		bord[0][1] = Chessman("knight", "black")
+		bord[0][2] = Chessman("bishop", "black")
+		bord[0][3] = Chessman("queen", "black")
+		bord[0][4] = Chessman("king", "black")
+		bord[0][5] = Chessman("bishop", "black")
+		bord[0][6] = Chessman("knight", "black")
+		bord[0][7] = Chessman("rook", "black")
+		# rada pescu
+		for x in range(8):
+			bord[1][x] = Chessman("pawn", "black")
+			
+		# bili
+		# rada pescu
+		for x in range(8):
+			bord[6][x] = Chessman("pawn", "white")
+		bord[7][0] = Chessman("rook", "white")
+		bord[7][1] = Chessman("knight", "white")
+		bord[7][2] = Chessman("bishop", "white")
+		bord[7][3] = Chessman("queen", "white")
+		bord[7][4] = Chessman("king", "white")
+		bord[7][5] = Chessman("bishop", "white")
+		bord[7][6] = Chessman("knight", "white")
+		bord[7][7] = Chessman("rook", "white")
+	
+	def EvaluateGarde(self, color):
+		if color == "white":
+			coordinates = self.bord.FindPiece("white", "queen")
+			for position in coordinates:
+				if self.bord.CheckPiece(position, "white"):
+					print(color, "garde!")
+					self.player_white.garde = True
+				else:
+					self.player_white.garde = False
+		elif color == "black":
+			coordinates = self.bord.FindPiece("black", "queen")
+			for position in coordinates:
+				if self.bord.CheckPiece(position, "black"):
+					print(color, "garde!")
+					self.player_black.garde = True
+				else:
+					self.player_black.garde = False
+		
+	def EvaluateCheck(self, color):
+		if color == "white":
+			old_check = self.player_white.check
+			coordinates = self.bord.FindPiece("white", "king")
+			if self.bord.CheckPiece(coordinates[0], "white"):
+				print(color, "check!")
+				self.player_white.check = True
+			else:
+				self.player_white.check = False
+			
+		if color == "black":
+			coordinates = self.bord.FindPiece("black", "king")
+			if self.bord.CheckPiece(coordinates[0], "black"):
+				print(color, "check!")
+				self.player_black.check = True
+			else:
+				self.player_black.check = False
+		
 	def EvaluateMove(self, player_color, move_from, move_to):
 		y_f = move_from[0]
 		x_f = move_from[1]
+		bord = self.bord.chessbord
 		# move from test
 		# invalid interval
 		if (y_f > 7 or y_f < 0 or x_f > 7 or x_f < 0):
@@ -231,12 +345,12 @@ class Game:
 				print("Invalid from coordinates! cord:", move_from)
 			return False
 		# from empty place
-		if self.bord[y_f][x_f] == None:
+		if bord[y_f][x_f] == None:
 			if DEBUG:
 				print("Invalid from coordinates!")
 			return False
 		# invalid color
-		if self.bord[y_f][x_f].color != player_color:
+		if bord[y_f][x_f].color != player_color:
 			if DEBUG:
 				print("Invalid player color!")
 			return False
@@ -250,42 +364,48 @@ class Game:
 				print("Invalid destination coordinates!")
 			return False
 		# invalid destination color 
-		if self.bord[y_t][x_t] != None and self.bord[y_t][x_t].color == player_color:
+		if bord[y_t][x_t] != None and bord[y_t][x_t].color == player_color:
 			if DEBUG:
 				print("Invalid destination color!")
 			return False
 		
 		
 		# physicali valid move
-		chessman = self.bord[y_f][x_f]
+		chessman = bord[y_f][x_f]
 		chessman.Print()
 		
 		valid = False
-		# pro vsechny vektory
-		for vector in chessman.vector:
-			y_v = y_f+vector[0]
-			x_v = x_f+vector[1]
-			while (y_v <= 7 and y_v >= 0 and x_v <= 7 and x_v >= 0):
-				if DEBUG and 0:
-					print(y_v, x_v)
-				if self.bord[y_v][x_v] != None:
-					if self.bord[y_v][x_v].color == player_color:
+		if bord[y_f][x_f].name == "pawn":
+			moves = []
+			moves = bord[y_f][x_f].ChessmanMove(move_from, bord)
+			if move_to in moves:
+				valid = True
+		else:
+			# pro vsechny vektory
+			for vector in chessman.vector:
+				y_v = y_f+vector[0]
+				x_v = x_f+vector[1]
+				while (y_v <= 7 and y_v >= 0 and x_v <= 7 and x_v >= 0):
+					if DEBUG and 0:
+						print(y_v, x_v)
+					if bord[y_v][x_v] != None:
+						if bord[y_v][x_v].color == player_color:
+							break
+					if y_v == y_t and x_v == x_t:
+						valid = True
 						break
-				if y_v == y_t and x_v == x_t:
+					# aktualizace
+					y_v = y_v+vector[0]
+					x_v = x_v+vector[1]
+					
+				if valid == True:
+					break
+			
+			# pro veskery incrementalni pohyb
+			for increment in chessman.incremental:
+				if y_f+increment[0] == y_t and x_f+increment[1] == x_t:
 					valid = True
 					break
-				# aktualizace
-				y_v = y_v+vector[0]
-				x_v = x_v+vector[1]
-				
-			if valid == True:
-				break
-		
-		# pro veskery incrementalni pohyb
-		for increment in chessman.incremental:
-			if y_f+increment[0] == y_t and x_f+increment[1] == x_t:
-				valid = True
-				break
 		
 		# game_logicaly valid move
 		if valid == False:
@@ -293,7 +413,7 @@ class Game:
 				print("Can't get there!")
 			return False
 		elif valid == True:
-			self.bord[y_f][x_f] = None
+			bord[y_f][x_f] = None
 		
 		# zvlastni tahy:
 		 # pesec
@@ -301,7 +421,7 @@ class Game:
 			chessman.incremental.pop()
 		 # kral		
 		 # test na validni tah hralem
-		if chessman.name == "king" and self.CheckPiece(move_to, player_color):
+		if chessman.name == "king" and self.bord.CheckPiece(move_to, player_color):
 			print("Hara-kiri1")
 			return False
 		
@@ -309,28 +429,28 @@ class Game:
 		chessman.moved = True
 		
 		# jde na prazdne pole
-		if self.bord[y_t][x_t] == None:
-			self.bord[y_t][x_t] = chessman
+		if bord[y_t][x_t] == None:
+			bord[y_t][x_t] = chessman
 			return True
 		# jde na obsazene pole
-		elif self.bord[y_t][x_t].color != player_color:
+		elif bord[y_t][x_t].color != player_color:
 			if DEBUG:
-				print("Taken:", self.bord[y_t][x_t].color, self.bord[y_t][x_t].name)
+				print("Taken:", bord[y_t][x_t].color, bord[y_t][x_t].name)
 			if player_color == "white":
-				self.player_white.score = self.player_white.score + self.bord[y_t][x_t].cost
+				self.player_white.score = self.player_white.score + bord[y_t][x_t].cost
 			elif player_color == "black":
-				self.player_black.score = self.player_black.score + self.bord[y_t][x_t].cost
+				self.player_black.score = self.player_black.score + bord[y_t][x_t].cost
 			# konec hry, smrt krale
-			if self.bord[y_t][x_t].name == "king":
+			if bord[y_t][x_t].name == "king":
 				if player_color == "white":
 					self.player_black.mate = True
 				elif player_color == "black":
 					self.player_white.mate = True
-				self.bord[y_f][x_f] = chessman
+				bord[y_f][x_f] = chessman
 				return True
 			
 			# zahrani kamene
-			self.bord[y_t][x_t] = chessman
+			bord[y_t][x_t] = chessman
 			
 		else:
 			print("Ups, something Faigled...")
@@ -338,71 +458,25 @@ class Game:
 		
 		# test na sach enemy krale & garde
 		if player_color == "white":
-			coordinates = self.FindPiece("black", "king")
-			print(coordinates[0])
-			if self.CheckPiece(coordinates[0], "black"):
-				self.player_black.check = True
-			else:
-				self.player_black.check = False
-			
-			coordinates = self.FindPiece("black", "queen")
-			for position in coordinates:
-				if self.CheckPiece(position, "black"):
-					self.player_black.garde = True
-				else:
-					self.player_black.garde = False
+			self.EvaluateCheck("black")
+			self.EvaluateGarde("black")
 		elif player_color == "black":
-			coordinates = self.FindPiece("white", "king")
-			if self.CheckPiece(coordinates[0], "white"):
-				self.player_white.check = True
-			else:
-				self.player_white.check = False
-				
-			coordinates = self.FindPiece("white", "queen")
-			for position in coordinates:
-				if self.CheckPiece(position, "white"):
-					self.player_white.garde = True
-				else:
-					self.player_white.garde = False
+			self.EvaluateCheck("white")
+			self.EvaluateGarde("white")
 		
 		#test na vlastni sach & garde
 		old_check = False
+		self.EvaluateCheck(player_color)
+		self.EvaluateGarde(player_color)
 		if player_color == "white":
 			old_check = self.player_white.check
-			coordinates = self.FindPiece("white", "king")
-			if self.CheckPiece(coordinates[0], "white"):
-				self.player_white.check = True
-			else:
-				self.player_white.check = False
-			
 			if old_check and self.player_white.check:
 				print("Hara-kiri2 - neuhnul")
 				return False
-			
-			coordinates = self.FindPiece("white", "queen")
-			for position in coordinates:
-				if self.CheckPiece(position, "white"):
-					self.player_white.garde = True
-				else:
-					self.player_white.garde = False
 		elif player_color == "black":
-			old_check = self.player_black.check
-			coordinates = self.FindPiece("black", "king")
-			if self.CheckPiece(coordinates[0], "black"):
-				self.player_black.check = True
-			else:
-				self.player_black.check = False
-			
 			if old_check and self.player_black.check:
 				print("Hara-kiri2 - neuhnul")
-				return False	
-				
-			coordinates = self.FindPiece("black", "queen")
-			for position in coordinates:
-				if self.CheckPiece(position, "black"):
-					self.player_black.garde = True
-				else:
-					self.player_black.garde = False
+				return False
 		
 		return True
 	
@@ -417,28 +491,7 @@ class Game:
 		return False
 		
 	def PrintBord(self):
-		print(" ---Bord--- ")
-		for y in range(len(self.bord)):
-			# indexovani radku
-			row = 8-y
-			print(row, end='')
-			print("|", end='')
-			# jednotlive radky
-			for x in range(len(self.bord[y])):
-				if self.bord[y][x] != None:
-					if (self.bord[y][x].color == "white"):
-						print(self.bord[y][x].character[1], end='')
-					else:
-						print(self.bord[y][x].character[0], end='')
-				else:
-					print("_", end='')
-			print("|")
-		# pismenka
-		print("  ", end='')
-		for x in range(8):
-			char = 65 + x
-			print(chr(char), end='')
-		print()
+		self.bord.PrintBord()
 		
 
 """
